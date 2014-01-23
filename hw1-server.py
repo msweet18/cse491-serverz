@@ -24,5 +24,5 @@ while True:
     c.send('Content-type: text/html\r\n')
     c.send('\r\n')
     c.send('<h1>Hello, world.</h1>')
-    c.send('This is ctb\'s Web server.')
+    c.send('This is Max\'s Web server.')
     c.close()
