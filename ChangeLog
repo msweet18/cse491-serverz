@@ -1,12 +1,39 @@
-2014-01-16  Titus Brown  <t@Titus-MacBook-Air-2.local>
-
- * Added in simple HTTP response for HW 1.
-
 2014-01-07  Titus Brown  <t@Titus-MacBook-Air-2.local>
 
  * Initialized repository, created server.py and README.
+ 
+<<<<<<< HEAD
+2014-01-16  Maximillian Sweet
+ 
+ * Added an HTTP response and a header/body to display in the browser
+=======
+ 
+2014-01-23  Maximillian Sweet  <MaxSweet@sweetmax.local>
 
-change for in-class exercise
+ * Added header to HTTP Response
+ * Cleaned up code
 
- * This is my change
-another change
+2014-01-23 Maximillian Sweet <MaxSweet@sweetmax.local>
+
+ * Finished HW2, Added ability to handle different paths
+ * Added POST functionality
+<<<<<<< HEAD
+>>>>>>> b336e417f640929c8c34ad5bf44d1a6ac197d657
+=======
+ 
+2014-01-23 Maximillian Sweet <MaxSweet@sweetmax.local>
+
+ * Updated HW1
+>>>>>>> e36038543aa33a48f09683fd3bff76b911843115
+
+2014-01-30  Maximillian Sweet  <MaxSweet@sweetmax.local>
+
+ * Merged hw3
+ 
+ 2014-02-06  Maximillian Sweet  <MaxSweet@sweetmax.local>
+
+ * Merged hw4
+
+  2014-02-13  Maximillian Sweet  <MaxSweet@sweetmax.local>
+
+ * Merged hw5
