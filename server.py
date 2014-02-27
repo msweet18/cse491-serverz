@@ -1,91 +1,154 @@
 #!/usr/bin/env python
-#didn't have time: coppied from cam keif
+#copied from mattyayoh
 import random
 import socket
 import time
-import urlparse
-import cgi
-
+from urlparse import urlparse
 from StringIO import StringIO
+from wsgiref.validate import validator
+from sys import stderr
+
+## My app.py
 from app import make_app
+##
 
-def main():
-    s = socket.socket()         # Create a socket object
-    host = socket.getfqdn()     # Get local machine name
-    port = random.randint(8000, 9999)
-    s.bind((host, port))        # Bind to the port
+## Quixhote
+# import quixote
+# from quixote.demo.altdemo import create_publisher
+# p = create_publisher()
+##
 
-    print 'Starting server on', host, port
-    print 'The Web server URL for this would be http://%s:%d/' % (host, port)
+## Image app
+# import quixote
+# import imageapp
+# imageapp.setup()
+# p = imageapp.create_publisher()
+##
 
-    s.listen(5)                 # Now wait for client connection.
+def handle_connection(conn, port):
+    """Takes a socket connection, and serves a WSGI app over it.
+        Connection is closed when app is served."""
+    
+    # Start reading in data from the connection
+    req = conn.recv(1)
+    count = 0
+    env = {}
+    while req[-4:] != '\r\n\r\n':
+        new = conn.recv(1)
+        if new == '':
+            return
+        else:
+            req += new
 
-    print 'Entering infinite loop; hit CTRL-C to exit'
-    while True:
-        # Establish connection with client.    
-        c, (client_host, client_port) = s.accept()
-        print 'Got connection from', client_host, client_port, '\n'
-        handle_connection(c)
+    # Parse the headers we've received
+    req, data = req.split('\r\n',1)
+    headers = {}
+    for line in data.split('\r\n')[:-2]:
+        key, val = line.split(': ', 1)
+        headers[key.lower()] = val
 
-def handle_connection(conn):
-  environ = {}
-  request = conn.recv(1)
-  
-  # This will get all the headers
-  while request[-4:] != '\r\n\r\n':
-    request += conn.recv(1)
+    # Parse the path and related env info
+    urlInfo = urlparse(req.split(' ', 3)[1])
+    env['REQUEST_METHOD'] = 'GET'
+    env['PATH_INFO'] = urlInfo[2]
+    env['QUERY_STRING'] = urlInfo[4]
+    env['CONTENT_TYPE'] = 'text/html'
+    env['CONTENT_LENGTH'] = str(0)
+    env['SCRIPT_NAME'] = ''
+    env['SERVER_NAME'] = socket.getfqdn()
+    env['SERVER_PORT'] = str(port)
+    env['wsgi.version'] = (1, 0)
+    env['wsgi.errors'] = stderr
+    env['wsgi.multithread']  = False
+    env['wsgi.multiprocess'] = False
+    env['wsgi.run_once']     = False
+    env['wsgi.url_scheme'] = 'http'
+    env['HTTP_COOKIE'] = headers['cookie'] if 'cookie' in headers.keys() else ''
 
-  first_line_of_request_split = request.split('\r\n')[0].split(' ')
-
-  # Path is the second element in the first line of the request
-  # separated by whitespace. (Between GET and HTTP/1.1). GET/POST is first.
-  http_method = first_line_of_request_split[0]
-  environ['REQUEST_METHOD'] = first_line_of_request_split[0]
-
-  try:
-    parsed_url = urlparse.urlparse(first_line_of_request_split[1])
-    environ['PATH_INFO'] = parsed_url[2]
-  except:
-    pass
-
-  def start_response(status, response_headers):
+    # Start response function for WSGI interface
+    def start_response(status, response_headers):
+        """Send the initial HTTP header, with status code 
+            and any other provided headers"""
+        
+        # Send HTTP status
         conn.send('HTTP/1.0 ')
         conn.send(status)
         conn.send('\r\n')
+
+        # Send the response headers
         for pair in response_headers:
             key, header = pair
             conn.send(key + ': ' + header + '\r\n')
         conn.send('\r\n')
+    
+    # If we received a POST request, collect the rest of the data
+    content = ''
+    if req.startswith('POST '):
+        # Set up extra env variables
+        env['REQUEST_METHOD'] = 'POST'
+        env['CONTENT_LENGTH'] = str(headers['content-length'])
+        env['CONTENT_TYPE'] = headers['content-type']
+        # Continue receiving content up to content-length
+        cLen = int(headers['content-length'])
+        while len(content) < cLen:
+            content += conn.recv(1)
+        
+    # Set up a StringIO to mimic stdin for the FieldStorage in the app
+    env['wsgi.input'] = StringIO(content)
+    
+    # Get the application
 
-  if environ['REQUEST_METHOD'] == 'POST':
-    environ = parse_post_request(conn, request, environ)
-  elif environ['REQUEST_METHOD'] == 'GET':
-    environ['QUERY_STRING'] = parsed_url.query
-  wsgi_app = make_app()
-  conn.send(wsgi_app(environ, start_response))
-  conn.close()
+    ## My app.py
+    wsgi_app = make_app()
+    ## 
+    
+    ## Quixote alt.demo
+    # wsgi_app = quixote.get_wsgi_app()
+    ##
 
-def parse_post_request(conn, request, environ):
-  request_split = request.split('\r\n')
+    ## Imageapp
+    # wsgi_app = quixote.get_wsgi_app()
+    ##
 
-  # Headers are separated from the content by '\r\n'
-  # which, after the split, is just ''.
+    ## VALIDATION ##
+    wsgi_app = validator(wsgi_app)
+    ## VALIDATION ##
 
-  # First line isn't a header, but everything else
-  # up to the empty line is. The names are separated
-  # from the values by ': '
-  for i in range(1,len(request_split) - 2):
-      header = request_split[i].split(': ', 1)
-      environ[header[0].upper()] = header[1]
+    result = wsgi_app(env, start_response)
 
-  content_length = int(environ['CONTENT-LENGTH'])
-  
-  content = ''
-  for i in range(0,content_length):
-      content += conn.recv(1)
+    # Serve the processed data
+    for data in result:
+        conn.send(data)
 
-  environ['wsgi.input'] = StringIO(content)
-  return environ
+    # Close the connection; we're done here
+    conn.close()
 
-if __name__ == '__main__':
-   main()
+def main():
+    """Waits for a connection, then serves a WSGI app using handle_connection"""
+    # Create a socket object
+    sock = socket.socket()
+    
+    # Get local machine name (fully qualified domain name)
+    host = socket.getfqdn()
+
+    # Bind to a (random) port
+    # port = random.randint(8000, 9999)
+    port = 8088
+    sock.bind((host, port))
+
+    print 'Starting server on', host, port
+    print 'The Web server URL for this would be http://%s:%d/' % (host, port)
+
+    # Now wait for client connection.
+    sock.listen(5)
+
+    print 'Entering infinite loop; hit CTRL-C to exit'
+    while True:
+        # Establish connection with client.    
+        conn, (client_host, client_port) = sock.accept()
+        print 'Got connection from', client_host, client_port
+        handle_connection(conn, client_port)
+        
+# boilerplate
+if __name__ == "__main__":
+    main()
