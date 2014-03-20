@@ -4,13 +4,8 @@ import requests
 
 url = sys.argv[1]
 
-<<<<<<< HEAD
-payload = { 'key' : 'value', 'firstname' : 'ben', 'lastname' : 'taylor' }
-r = requests.post(url, files=payload)
-=======
 payload = { 'key' : 'value' }
 r = requests.post(url, data=payload)
->>>>>>> master
 
 print r.status_code
 print r.text
