@@ -48,5 +48,38 @@
  
  2014-03-20  Maximillian Sweet  <MaxSweet@sweetmax.local>
 
- * Merged hw8
+* Implemented command line options in server.py to run imageapp, quixote demo app, and app.py
+* Add twill tests for all 3 applications
+* PROJECT: Change imageapp to support JPEG and TIFF. (5pts)
+    
+    - Summary: imageapp will now allow users to upload JPEG and TIFF images instead
+      of only PNGs and display them. PNG images are still supported. Most browsers
+      don't support TIFF very well without extensions.
 
+    - This was primarily done by modifying the code in imageapp/image.py and 
+      imageapp/root.py.
+
+    - In image.py, I add_image was modified to accept an additional parameter, filename, 
+      which is the filename of the image. This is added in a tuple with the image data 
+      to the images dictionary in the form (filename, data).
+
+    - Now, get_image/get_latest_image will return (filename, data). This is utilized in
+      root.py. In image_raw, rather than setting the reponse content type to image/png,
+      the filename is parsed to find the extension. That file extension is used to
+      determine what the content type should be set to (image/jpeg for .jpg/.jpeg and
+      image/tiff for .tif/.tiff). The file extension is not case senstive, .TIF will
+      work just as .tif would.
+
+2014-3-27 Maximillian Sweet  <MaxSweet@sweetmax.local>
+  * Integrated quotes app
+  * Integrated chat app and added a timestamp to each image in the chat window
+  * PROJECT: Add a URL that provides a list of images, resized to thumbnails (you can just img size, not
+    actual resizing – that will be a separate project ;).
+
+    - Summary: There's a link on the index page to see a list of all the images that were uploaded. It shows
+      the most recently updated image first.
+
+    - I added a check in get_image_raw() to see if the request included a query parameter "num". If so, 
+      rather than getting the most recent image, it gets the image at images[num]. I also added a method to
+      return the count of images. Using these two things, I can make a few ajax calls in the image list page
+      to iterate over images and display every image.
