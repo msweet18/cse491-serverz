@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#copied from camkeif
 import random
 import socket
 import time
