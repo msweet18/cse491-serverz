@@ -1,14 +1,41 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
+#copied from camkeif
 import random
 import socket
-import urlparse
 import time
+import urlparse
+import os
+import sys
+import argparse
+import imageapp
+import quixote
+import quixote.demo.altdemo
+import app
+
+from StringIO import StringIO
 
 def main():
+    # Set up the argument parser
+    parser = argparse.ArgumentParser(description='Server for several WSGI apps')
+    parser.add_argument('-p', metavar='-p', type=int, nargs='?', default=-1,
+                   help='an integer for the port number')
+
+    parser.add_argument('-A', metavar='-A', type=str, nargs=1,
+                   help='the app to run (image, altdemo, or myapp)')
+
+    args = parser.parse_args()
+    appname = args.A[0]
+
+    if appname != "myapp" and appname != "image" and appname != "altdemo":
+      raise Exception("Invalid application name. Please enter 'myapp', 'image', or 'altdemo'")
     s = socket.socket()         # Create a socket object
-    host = socket.getfqdn() # Get local machine name
-    port = random.randint(8000,9000)
+    host = socket.getfqdn()     # Get local machine name
+    port = args.p
+
+    if port < 8000 or port > 9999:
+      port = random.randint(8000,9999)
+
+
     s.bind((host, port))        # Bind to the port
 
     print 'Starting server on', host, port
@@ -20,106 +47,108 @@ def main():
     while True:
         # Establish connection with client.    
         c, (client_host, client_port) = s.accept()
-        print 'Got connection from', client_host, client_port
+        print 'Got connection from', client_host, client_port, '\n'
+        handle_connection(c, host, port, appname)
 
-        handle_connection(c)
-
-def handle_connection(conn):
-    requestInfo = conn.recv(1024)
-    print requestInfo
-    requestSplit = requestInfo.split('\r\n')[0].split(' ')
-    requestType = requestSplit[0]
-
-    try:
-        parsed_url = urlparse.urlparse(requestSplit[1])
-        path = parsed_url[2]
-    except:
-        path = "/404"
-
-    if requestType == "GET":
-        if path == '/':
-            handle_index(conn)
-        elif path == '/content':
-            handle_content(conn)
-        elif path == '/file':
-            handle_file(conn)
-        elif path == '/image':
-            handle_image(conn)
-        elif path == '/submit':
-            handle_submit(conn,parsed_url[4])
-        else:
-            handle_fail(conn)
-
-    elif requestType == "POST":
-        if path == '/':
-            handle_index(conn)
-        elif path == '/submit':
-            handle_submit(conn,requestInfo.split('\r\n')[-1])
-
+def handle_connection(conn, host, port, appname):
+  environ = {}
+  request = conn.recv(1)
+  
+  # This will get all the headers
+  while request[-4:] != '\r\n\r\n':
+    new = conn.recv(1)
+    if new == '':
+        return
     else:
-        print "ERROR: Invalid Request Made"
+        request += new
 
-    conn.close()
+  request, data = request.split('\r\n',1)
+  headers = {}
+  for line in data.split('\r\n')[:-2]:
+      key, val = line.split(': ', 1)
+      headers[key.lower()] = val
 
-def handle_index(conn, args):
-    conn.send('HTTP/1.0 200 OK\r\n' + \
-            'Content-type: text/html\r\n' + \
-            '\r\n' + \
-            "<a href='/content'>Content</a><br>" + \
-            "<a href='/file'>File</a><br>" + \
-            "<a href='/image'>Image</a><br><br>" + \
-            "<p><u>Form Submission via GET</u></p>"
-            "<form action='/submit' method='GET'>\n" + \
-            "<p>first name: <input type='text' name='firstname'></p>\n" + \
-            "<p>last name: <input type='text' name='lastname'></p>\n" + \
-            "<p><input type='submit' value='Submit'>\n\n" + \
-            "</form></p>" + \
-            "<p><u>Form Submission via POST</u></p>"
-            "<form action='/submit' method='POST'>\n" + \
-            "<p>first name: <input type='text' name='firstname'></p>\n" + \
-            "<p>last name: <input type='text' name='lastname'></p>\n" + \
-            "<p><input type='submit' value='Submit'>\n\n" + \
-            "</form></p>")
+  first_line_of_request_split = request.split('\r\n')[0].split(' ')
 
-def handle_submit(conn, args):
-    args = args.split("&")
+  # Path is the second element in the first line of the request
+  # separated by whitespace. (Between GET and HTTP/1.1). GET/POST is first.
+  http_method = first_line_of_request_split[0]
+  environ['REQUEST_METHOD'] = first_line_of_request_split[0]
 
-    firstname = args[0].split("=")[1]
-    lastname = args[1].split("=")[1]
+  try:
+    parsed_url = urlparse.urlparse(first_line_of_request_split[1])
+    environ['PATH_INFO'] = parsed_url[2]
+    env['QUERY_STRING'] = parsed_url[4]
+  except:
+    pass
 
-    conn.send('HTTP/1.0 200 OK\r\n' + \
-              'Content-type: text/html\r\n' + \
-              '\r\n' + \
-              "Hello Mr. %s %s." % (firstname, lastname))
+  urlInfo = urlparse.urlparse(request.split(' ', 3)[1])
+  environ['REQUEST_METHOD'] = 'GET'
+  environ['PATH_INFO'] = urlInfo[2]
+  environ['QUERY_STRING'] = urlInfo[4]
+  environ['CONTENT_TYPE'] = 'text/html'
+  environ['CONTENT_LENGTH'] = str(0)
+  environ['SCRIPT_NAME'] = ''
+  environ['SERVER_NAME'] = socket.getfqdn()
+  environ['SERVER_PORT'] = str(port)
+  environ['wsgi.version'] = (1, 0)
+  environ['wsgi.errors'] = sys.stderr
+  environ['wsgi.multithread']  = False
+  environ['wsgi.multiprocess'] = False
+  environ['wsgi.run_once']     = False
+  environ['wsgi.url_scheme'] = 'http'
+  environ['HTTP_COOKIE'] = headers['cookie'] if 'cookie' in headers.keys() else ''
 
+  def start_response(status, response_headers):
+        conn.send('HTTP/1.0 ')
+        conn.send(status)
+        conn.send('\r\n')
+        for pair in response_headers:
+            key, header = pair
+            conn.send(key + ': ' + header + '\r\n')
+        conn.send('\r\n')
 
-def handle_content(conn, args):
-    conn.send('HTTP/1.0 200 OK\r\n')
-    conn.send('Content-type: text/html\r\n')
-    conn.send('\r\n')
-    conn.send('<h1>Here\'s Some Content</h1>')
-    conn.send('This is Msweet18\'s Web server.')
+  content = ''
+  if request.startswith('POST '):
+      environ['REQUEST_METHOD'] = 'POST'
+      environ['CONTENT_LENGTH'] = str(headers['content-length'])
+      environ['CONTENT_TYPE'] = headers['content-type']
 
-def handle_file(conn, args):
-    conn.send('HTTP/1.0 200 OK\r\n')
-    conn.send('Content-type: text/html\r\n')
-    conn.send('\r\n')
-    conn.send('<h1>Here\'s a File</h1>')
-    conn.send('This is Msweet18\'s Web server.')
+      cLen = int(headers['content-length'])
+      while len(content) < cLen:
+          content += conn.recv(1)
+      
+  environ['wsgi.input'] = StringIO(content)
+  
+  # Create the appropriate wsgi app based on the command-line parameter
+  if appname == "image":
+    try:
+      # Sometimes this gets called multiple times. Blergh.
+      p = imageapp.create_publisher()
+      imageapp.setup()
+    except RuntimeError:
+      pass
+  
+    wsgi_app = quixote.get_wsgi_app()
 
-def handle_image(conn, args):
-    conn.send('HTTP/1.0 200 OK\r\n')
-    conn.send('Content-type: text/html\r\n')
-    conn.send('\r\n')
-    conn.send('<h1>Here\'s an Image</h1>')
-    conn.send('This is Msweet18\'s Web server.')
+  elif appname == "myapp":
+    wsgi_app = app.make_app()
+  elif appname == "altdemo":
+    try:
+      p = quixote.demo.altdemo.create_publisher()
+    except RuntimeError:
+      pass
 
-def handle_fail(conn, args):
-    conn.send('HTTP/1.0 200 OK\r\n')
-    conn.send('Content-type: text/html\r\n')
-    conn.send('\r\n')
-    conn.send('<h1>You made a bad request :(</h1>')
-    conn.send('This is Msweet18\'s Web server.')
+    wsgi_app = quixote.get_wsgi_app()
+
+  result = wsgi_app(environ, start_response)
+  try:
+    for response in result:
+      conn.send(response)
+  finally:
+    if hasattr(result, 'close'):
+      result.close()
+  conn.close()
 
 if __name__ == '__main__':
-    main()
+   main()
