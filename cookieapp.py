@@ -12,7 +12,7 @@ def wsgi_app(environ, start_response):
     elif path == '/set':
         start_response('302 Redirect', [
             ('Location', '/'),
-            ('Set-Cookie', 'favorite_color=red')
+            ('Set-Cookie', 'favorite_color=blue')
             ])
 
         return ["You should have been redirected"]
