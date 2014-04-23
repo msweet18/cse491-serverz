@@ -30,7 +30,7 @@ def main():
     try:
       appname = args.A[0]
     except TypeError:
-      appname = "HOLYSHITINVALIDAPPWTF"
+      appname = "Invalid App"
 
     validApps = ['myapp', 'image', 'altdemo', 'quotes', 'chat', 'cookie']
     if appname not in validApps:
@@ -134,7 +134,7 @@ def handle_connection(conn, host, port, appname):
   # Create the appropriate wsgi app based on the command-line parameter
   if appname == "image":
     try:
-      # Sometimes this gets called multiple times. Blergh.
+      # Sometimes this gets called multiple times.
       p = imageapp.create_publisher()
       imageapp.setup()
     except RuntimeError:
