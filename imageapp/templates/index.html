@@ -3,9 +3,6 @@
 {% block content %}
 
 <div class="contentText">
-    <a href='upload'>Upload an image</a> |
-    <a href='image'>Show most recent image</a>
-    <p>
     <h2>Version 2 - AJAX</h2>
     <a href='upload2'>Upload an image</a> |
     <a href='image'>Show most recent image</a>
@@ -14,5 +11,60 @@
     <a href='image_list'>All images</a>
     <hr>
     <img width=40% src='image_raw'/>
+	<p>
+	Name: <span id="name"></span>
+	<p>
+	Description: <span id="content"></span>
+	<p>
+	<input type="text" name='term' />
+	<button id="buttons">Search!</button>
+	<p>
 </div>
+
+
+
+<script type="text/javascript">
+var imageNum = window.location.href.split("?num=")[1]
+var imageQuery = window.location.href.split("?query=")[1]
+
+console.log(imageNum);
+/*
+<a id="reflectedlink" href="/image?">Search:</a>
+<input id="searchterm"/>
+*/
+$.post("image_content?num=" + imageNum,
+    function(content) {
+        content = String(content);
+		$("#content").append(content)
+        
+    });
+	
+$.post("image_name?num=" + imageNum,
+    function(name) {
+        name = String(name);
+		$("#name").append(name)
+        
+    });
+/*	
+var link= document.getElementById('reflectedlink');
+    var input= document.getElementById('searchterm');
+    input.onchange=input.onkeyup= function() {
+        link.search= 'num=' +encodeURIComponent(input.value);
+       // link.firstChild.data= link.href;
+    };
+	*/
+$("#buttons").click(function() {
+
+	$.post("search_image?query=" + $("input[name='term']").val(),
+    
+		function(search) {
+		search = parseInt(search);
+		$("#search").append(search)
+		
+		window.location.href = '/image?num='+search
+        
+    });
+});
+	
+</script>
 {% endblock %}

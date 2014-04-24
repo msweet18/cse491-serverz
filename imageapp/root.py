@@ -30,13 +30,16 @@ class RootDirectory(Directory):
     def upload_receive(self):
         request = quixote.get_request()
         print request.form.keys()
-
+		
         the_file = request.form['file']
         print dir(the_file)
         print 'received file with name:', the_file.base_filename
         data = the_file.read(the_file.get_size())
-
-        image.add_image(the_file.base_filename, data)
+        content = request.form['content']
+        name = request.form['name']
+		
+		
+        image.add_image(the_file.base_filename, data, content, name)
 
         return quixote.redirect('./')
 
@@ -54,7 +57,11 @@ class RootDirectory(Directory):
         print 'received file with name:', the_file.base_filename
         data = the_file.read(the_file.get_size())
 
-        image.add_image(the_file.base_filename, data)
+        content = request.form['content']
+		
+        name = request.form['name']
+
+        image.add_image(the_file.base_filename, data, content, name)
 
         return html.render('upload2_received.html')
 
@@ -69,7 +76,48 @@ class RootDirectory(Directory):
     @export(name='image_count')
     def image_count(self):
         return image.get_num_images()
+    
+    @export(name='image_content')	
+    def image_content(self):
+        response = quixote.get_response()
+        request = quixote.get_request()
 
+        try:
+            i = int(request.form['num'])
+        except:
+            i = -1
+
+        img = image.retrieve_image(i)
+
+        content = img.content
+		
+        return content
+
+    @export(name='image_name')	
+    def image_name(self):
+        response = quixote.get_response()
+        request = quixote.get_request()
+
+        try:
+            i = int(request.form['num'])
+        except:
+            i = -1
+
+        img = image.retrieve_image(i)
+
+        name = img.name
+		
+        return name
+	
+    @export(name='search_image')
+    def search_image(self):
+        response = quixote.get_response()
+        request = quixote.get_request()
+		
+        i = image.image_search(request.form['query'])
+		
+        return i
+		
     @export(name='image_raw')
     def image_raw(self):
         response = quixote.get_response()

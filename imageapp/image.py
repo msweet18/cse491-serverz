@@ -6,16 +6,20 @@ class Image:
     filename = ''
     data = ''
     score = 0
-    def __init__(self, filename, data, score):
+    content = ''
+    name = ''	
+    def __init__(self, filename, data, score, content, name):
         self.filename = filename
         self.data = data
         self.score = score
+        self.content = content
+        self.name = name
 
 images = {}
 
-def add_image(filename, data):
+def add_image(filename, data, content, name):
     # insert to database
-    insert_image(filename, data)
+    insert_image(filename, data, content, name)
 
 def get_image(num):
     return retrieve_image(num)
@@ -23,7 +27,7 @@ def get_image(num):
 def get_latest_image():
     return retrieve_image(-1)
 
-def insert_image(filename, data):
+def insert_image(filename, data, content, name):
     # connect to the already existing database
     db = sqlite3.connect('images.sqlite')
 
@@ -33,8 +37,8 @@ def insert_image(filename, data):
     # grab whatever it is you want to put in the database
 
     # insert!
-    db.execute('INSERT INTO image_store (filename, score, image) \
-        VALUES (?,?,?)', (filename, 1, data))
+    db.execute('INSERT INTO image_store (filename, score, image, content, name) \
+        VALUES (?,?,?,?,?)', (filename, 1, data, content, name))
     db.commit()
 
 # retrieve an image from the database.
@@ -50,15 +54,15 @@ def retrieve_image(i):
 
     # select all of the images
     if i >= 0:
-        c.execute('SELECT i, filename, score, image FROM image_store where i=(?)', (i,))
+        c.execute('SELECT i, filename, score, image, content, name FROM image_store where i=(?)', (i,))
     else:
-        c.execute('SELECT i, filename, score, image FROM image_store ORDER BY i DESC LIMIT 1')
+        c.execute('SELECT i, filename, score, image, content, name FROM image_store ORDER BY i DESC LIMIT 1')
 
     # grab the first result (this will fail if no results!)
     try:
-        i, filename, score, image = c.fetchone()
+        i, filename, score, image, content, name = c.fetchone()
 
-        return Image(filename, image, score)
+        return Image(filename, image, score, content, name)
     except:
         pass
 
@@ -97,6 +101,24 @@ def get_comments(i):
         comments.append(row[1])
 
     return comments
+	
+def image_search(query):
+    # connect to database
+    db = sqlite3.connect('images.sqlite')
+
+    # get a query handle (or "cursor")
+    c = db.cursor()
+	
+    try:
+        c.execute('SELECT i FROM image_store where name=(?)', (query,))
+        val = int(c.fetchone()[0])
+    except:
+        c.execute('SELECT i FROM image_store where content=(?)', (query,))
+        val = int(c.fetchone()[0])
+    
+	
+   
+    return val
 
 def get_image_score(i):
     # connect to database

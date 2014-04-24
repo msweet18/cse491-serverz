@@ -8,6 +8,10 @@
     <div id="imageContainer"></div>
     <p>
     Score: <span id="score"></span>
+	<p>
+	Name: <span id="name"></span>
+	<p>
+	Description: <span id="content"></span>
     <p>
     <button id='upvote_button'>Upvote</button>
     <p>
@@ -43,6 +47,21 @@ $.post("get_score?num=" + imageNum,
         else {
             $("#score").append(score)
         }
+        
+    });
+	
+
+$.post("image_content?num=" + imageNum,
+    function(content) {
+        content = String(content);
+		$("#content").append(content)
+        
+    });
+	
+$.post("image_name?num=" + imageNum,
+    function(name) {
+        name = String(name);
+		$("#name").append(name)
         
     });
 

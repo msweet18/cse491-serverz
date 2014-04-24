@@ -4,5 +4,28 @@
 Here is your image:
 <p>
 <img width=40% src='image_raw?special=latest'/>
+<p>
+Name: <span id="name"></span>
+<p>
+Description: <span id="content"></span>
 
+<script type="text/javascript">
+var imageNum = window.location.href.split("?num=")[1]
+
+$.post("image_content?num=" + imageNum,
+    function(content) {
+        content = String(content);
+		$("#content").append(content)
+        
+    });
+	
+$.post("image_name?num=" + imageNum,
+    function(name) {
+        name = String(name);
+		$("#name").append(name)
+        
+    });
+
+</script>
 {% endblock %}
+

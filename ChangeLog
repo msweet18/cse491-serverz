@@ -134,4 +134,10 @@
 			put it in the database, and display a success message. If it fails an
 			error message appears.
 
-
+2014-4-24 Maximillian Sweet  <MaxSweet@sweetmax.local>
+	* PROJECT: add metadata uploading, storage, and retrieval, 
+		-added a file name and description
+		-name and description are viewable whenever image is displayed by itself on the screen
+		
+	* PROJECT: add image metadata search
+		-added search capability by name and description on main imageapp page
